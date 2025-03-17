@@ -1,0 +1,6 @@
+,count,LL,LL,LL,LL,LL,BIC,BIC,BIC,BIC,BIC
+,,mean,std,se,ci_lower,ci_upper,mean,std,se,ci_lower,ci_upper
+PF,15.0,-23.107,13.755,3.552,-30.068,-16.146,64.42,27.401,7.075,50.553,78.287
+base,1.0,-16.797,,,,,42.723,,,,
+perseverance,0.0,,,,,,,,,,
+feedback,0.0,,,,,,,,,,

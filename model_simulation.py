@@ -69,9 +69,10 @@ def test_trial_type(current_task, former_task):
     return trial_type
 
 
-def initialize_task():
+def initialize_task(task=None):
     # initialization of the task
-    task = random.randint(0, 1)
+    if task is None:
+        task = random.randint(0, 1)
 
     if task == 0:
         I1 = 1
@@ -80,12 +81,14 @@ def initialize_task():
         correct_responses = np.array([1, 0])
         current_task = "letter"
 
-    else:
+    elif task == 1:
         I1 = 0
         I2 = 1
         input = np.array([I1, I2])
         correct_responses = np.array([0, 1])
         current_task = "number"
+    else:
+        raise ValueError("Task must be either 0 or 1")
 
     return current_task, input, correct_responses
 
@@ -112,6 +115,23 @@ def generate_experiment_trials(num_trials):
       df: a Pandas dataframe containing the data of the experiment
     """
     trials = [initialize_task() for _ in range(num_trials)]
+    trails_df = pd.DataFrame(trials, columns=["task", "input", "correct_responses"])
+
+    return trails_df
+
+
+def generate_experiment_trials_fromData(data):
+    """
+    This function generates an experiment with a given number of trials.
+
+    Input arguments:
+      data: a Pandas dataframe containing the data of the experiment
+    Output:
+      df: a Pandas dataframe containing the data of the experiment
+    """
+    # 0 letter, 1 number
+    tasks = data["task"].copy().apply(lambda x: 0 if x == "letter" else 1)
+    trials = [initialize_task(task) for task in tasks]
     trails_df = pd.DataFrame(trials, columns=["task", "input", "correct_responses"])
 
     return trails_df
@@ -161,6 +181,7 @@ def simulate_experiment(
     num_sample_points_per_trial=100,
     bool_plot_trajectory=False,
     task_sequence=None,
+    ax=None,
 ):
 
     if task_sequence is not None:
@@ -274,7 +295,7 @@ def simulate_experiment(
     if (bool_plot_trajectory == True) and (num_trials <= max_trails_plot):
         # get the task sequence in 0 and 1 , input [1,0] -> 0, input [0,1] -> 1
         inputs = task_sequence["input"].apply(lambda x: 0 if x[0] != 1 else 1)
-        plot_trajectory(T, array_ts, array_x1, array_x2, array_P, inputs, feedback_log, num_trials)
+        plot_trajectory(T, array_ts, array_x1, array_x2, array_P, inputs, feedback_log, num_trials, ax=ax)
     elif (bool_plot_trajectory == True) and (num_trials > max_trails_plot):
         print(f"Ploting first {max_trails_plot} trials:")
         inputs = task_sequence["input"].apply(lambda x: 0 if x[0] != 1 else 1)
@@ -287,6 +308,7 @@ def simulate_experiment(
             inputs[:max_trails_plot],
             feedback_log[:max_trails_plot],
             max_trails_plot,
+            ax=ax,
         )
 
     return df

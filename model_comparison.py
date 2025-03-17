@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from parameter_fitting import param_fit_grid_search_parallel
 
 
@@ -99,3 +100,57 @@ def model_fit(
         }
 
     return results
+
+
+def model_comparision_results_statistics(results_df):
+    """
+    Given a DataFrame of participant results (indexed by participant id) with a column 'best_model'
+    and other columns corresponding to fit values (LL, BIC, model parameters, etc.),
+    this function groups the participants by their best fitted model, and for each parameter computes:
+        - mean
+        - standard deviation (std)
+        - standard error of the mean (se)
+        - 95% confidence interval (ci_lower, ci_upper)
+
+    Parameters
+    ----------
+    results_df : pd.DataFrame
+        DataFrame with participant results. It is assumed that there is an index for participant IDs
+        and one column named 'best_model' that specifies the winning model.
+    Returns
+    -------
+    stats : pd.DataFrame
+        A DataFrame with multi-index columns (parameter, statistic) where each statistic is one of:
+        'mean', 'std', 'se', 'ci_lower', 'ci_upper'
+    """
+    results = results_df.copy()
+
+    # Group by the best fitted model
+    grouped = results.groupby("best_model")
+
+    # Compute the mean and standard deviation for each column in each group.
+    # The result is a DataFrame with a MultiIndex in columns: (parameter, statistic)
+    stats = grouped.agg(["mean", "std"])
+
+    # Number of participants per group
+    counts = grouped.size()
+
+    # For each parameter, compute se and 95% confidence interval.
+    # The se = std / sqrt(n)
+    # 95% CI = mean ± 1.96 * se
+    for param in stats.columns.levels[0]:
+        # Retrieve standard deviation series for the current parameter
+        std_series = stats[(param, "std")]
+        se = std_series / np.sqrt(counts)
+        stats[(param, "se")] = se
+        stats[(param, "ci_lower")] = stats[(param, "mean")] - 1.96 * se
+        stats[(param, "ci_upper")] = stats[(param, "mean")] + 1.96 * se
+
+    # Optionally sort columns for clarity (sort by parameter names)
+    stats = stats.sort_index(axis=1, level=0)
+    # round numeric values
+    stats = stats.map(lambda x: np.round(x, 3) if pd.notnull(x) and isinstance(x, (int, float)) else x)
+    # add counts to the stats
+    stats["count"] = counts
+
+    return stats

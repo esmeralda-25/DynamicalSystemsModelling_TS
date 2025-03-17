@@ -2,6 +2,10 @@ import numpy as np
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 
+# direct feedback influences the task attention variables directly
+# indirect feedback influences the P variable which in turn influences the task attention variables
+FEEDBACK_INFLUENCE = "indirect"
+
 
 def S(g, net):
     """Logistic saturation function, with slope modulated by a gain parameter g
@@ -15,7 +19,7 @@ def S(g, net):
     return 1 / (1 + np.exp(-g * net))
 
 
-def perseverence_dynamics_model(t, x, g, alpha, gamma, input, feedback, sigma, tau_P=1):
+def attention_switch_dynamics_model(t, x, g, alpha, gamma, input, feedback, sigma, tau_P=1):
     """Dynamical model
 
     ------
@@ -33,6 +37,7 @@ def perseverence_dynamics_model(t, x, g, alpha, gamma, input, feedback, sigma, t
     dx2/dt(t,x)
 
     """
+    global FEEDBACK_INFLUENCE
     # split input I1 is for task 1 and I2 for task 2
     I1, I2 = input
     F = feedback
@@ -54,30 +59,27 @@ def perseverence_dynamics_model(t, x, g, alpha, gamma, input, feedback, sigma, t
     P = x[2]
 
     # net inputs for the 3 neurons
-    noise = lambda sigma: sigma * np.random.normal()  # Gaussian noise
-    attention_dominance = np.sign(x1 - x2)  # task dominance
     attention_dominance = 1 if x1 >= x2 else -1
 
-    net_1 = -w1_2 * x2 + w1_p * P + alpha * F * attention_dominance + I1 + sigma * np.random.normal()
-    # net_2 = -w2_1 * x1 - w2_p * P + alpha * F * (-attention_dominance) + I2 + noise(sigma)
-    net_2 = -w2_1 * x1 - w2_p * P + alpha * F * (1 - attention_dominance) + I2 + sigma * np.random.normal()
+    net_1 = -w1_2 * x2 + w1_p * P + I1 + sigma * np.random.normal()
+    net_2 = -w2_1 * x1 - w2_p * P + I2 + sigma * np.random.normal()
+    net_P = gamma * (wp_1 * x1 - wp_2 * x2)  # + sigma * np.random.normal()
 
-    net_P = wp_1 * x1 - wp_2 * x2  # + noise(sigma)
+    if FEEDBACK_INFLUENCE == "indirect":
+        tendency = np.sign(gamma * attention_dominance) if np.abs(gamma) > 0.001 else attention_dominance
+        net_P += alpha * F * (-tendency)
 
-    # if the tendecy in change of perserverance is significant (gammma > epsilon), feedback aligns with the tendecy
-    # otherwise feedback aligns with task dominance
-    # technically, avoid sign of zero, and avoid aligning feedback to gamma for noisy cases (too small gamma)
-    # tendecy = np.sign(gamma * diff_x1_x2) if np.abs(gamma) > epsilon else np.sign(diff_x1_x2)
-    # net_P = gamma * diff_x1_x2 + alpha * feedback * np.sign(tendecy)  # + noise(sigma)
+    elif FEEDBACK_INFLUENCE == "direct":
+        net_1 += alpha * F * attention_dominance
+        net_2 += alpha * F * (-attention_dominance)
+
+    else:
+        raise ValueError(f"Invalid feedback influence type: {FEEDBACK_INFLUENCE}, set to either 'direct' or 'indirect'")
 
     # differential equations for the 3 neurons
     dx1_dt = -x1 + S(g, net_1)
     dx2_dt = -x2 + S(g, net_2)
-    dP_dt = tau_P * (-P + np.tanh(gamma * net_P))
-
-    # x_1_x_2_diff = wp_1 * x1 - wp_2 * x2
-    # net_P = gamma * x_1_x_2_diff + alpha * feedback * np.sign(gamma * x_1_x_2_diff)  # + sigma * np.random.normal()
-    #  dP_dt = -P + np.tanh(net_P)
+    dP_dt = tau_P * (-P + np.tanh(net_P))
 
     return np.array([dx1_dt, dx2_dt, dP_dt])
 
@@ -86,7 +88,7 @@ def simulate_dynamics(T, x_0, g, alpha, gamma, input, feedback, sigma, tau_P, nu
     # integrate differential equation
 
     x_out = solve_ivp(
-        perseverence_dynamics_model,
+        attention_switch_dynamics_model,
         np.array([0, T]),
         x_0,  # initial condition
         dense_output=True,  # dense_output = True allows us to compute x at any time points on the interval T

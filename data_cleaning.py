@@ -70,6 +70,8 @@ def clean_data(df_raw):
         lambda row: 1 - row["response"] if row["task"] == "letter" else row["response"], axis=1
     ).astype(int)
 
+    # add trail index
+    df["trial_index"] = df.index
     # reorder columns for readability
     df = df[
         [
@@ -84,6 +86,7 @@ def clean_data(df_raw):
             "correct_key",
             "key_choices",
             "stimuli",
+            "trial_index",
         ]
     ]
 

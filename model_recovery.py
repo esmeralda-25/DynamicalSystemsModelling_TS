@@ -139,7 +139,7 @@ def plot_model_recovery(confusion_matrix, inverse_matrix, model_names, axs=None)
             axs[1].text(j, i, f"{inverse_matrix[i, j]:.2f}", ha="center", va="center", color="black")
 
     # add colorbar 0-1
-    cbar = plt.colorbar(im, ax=axs.ravel().tolist(), orientation="vertical")
+    cbar = plt.colorbar(im, ax=axs.tolist(), orientation="vertical")
     cbar.set_label("Accuracy")
 
     if show_plot:
