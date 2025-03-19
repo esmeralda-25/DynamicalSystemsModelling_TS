@@ -37,7 +37,7 @@ def model_recovery(
             "you have to give the same amount of values for all parameters to recover (g, c, alpha, gamma)"
         )
 
-    # section the sampled parameters into num_models
+    # section the sampled parameters into num_models splits, each split will be used for one model
     len_equal_shares = num_true_param_set - num_true_param_set % num_models
     num_runs = len_equal_shares // num_models
 
@@ -139,7 +139,7 @@ def plot_model_recovery(confusion_matrix, inverse_matrix, model_names, axs=None)
             axs[1].text(j, i, f"{inverse_matrix[i, j]:.2f}", ha="center", va="center", color="black")
 
     # add colorbar 0-1
-    cbar = plt.colorbar(im, ax=axs.tolist(), orientation="vertical")
+    cbar = plt.colorbar(im, ax=axs.tolist(), orientation="vertical", shrink=0.70)
     cbar.set_label("Accuracy")
 
     if show_plot:

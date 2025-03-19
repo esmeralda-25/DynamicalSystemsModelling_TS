@@ -103,9 +103,9 @@ def plot_accuracy_across_blocks(acc_blocks, num_blocks=5, title="", ax=None):
         show_plot = True
 
     # Plot the results for each condition
-    ax.plot(acc_blocks["block"], acc_blocks["accuracy"], marker="o", label="all")
     ax.plot(acc_blocks["block"], acc_blocks["accuracy_switch"], marker="o", label="switch")
     ax.plot(acc_blocks["block"], acc_blocks["accuracy_repeat"], marker="o", label="repeat")
+    ax.plot(acc_blocks["block"], acc_blocks["accuracy"], marker="o", label="all")
 
     # Plot chance level
     ax.axhline(0.5, color="black", linestyle="--", label="chance", alpha=0.5, linewidth=0.5)
@@ -192,7 +192,9 @@ def calculate_accuracy_consecutive_condition(df, consecutive_condition, on_condi
     return pd.DataFrame({"bucket": buckets, "accuracy": accuracy, "count": counts})
 
 
-def plot_accuracy_consecutive_condition(acc_consecutive, consecutive_condition, on_condition, title="", ax=None):
+def plot_accuracy_consecutive_condition(
+    acc_consecutive, consecutive_condition, on_condition, title="", ax=None, include_handles=False
+):
     """
     Plots the average accuracy for on_condition trials following a streak
     of consecutive_condition trials and creates a legend showing, for each bucket,
@@ -227,24 +229,25 @@ def plot_accuracy_consecutive_condition(acc_consecutive, consecutive_condition, 
     counts = acc_consecutive["count"]
 
     # Plot the average accuracy per bucket without a legend label.
-    (line,) = ax.plot(buckets, accuracy, marker="o", linestyle="-", color="C0")
+    (line,) = ax.plot(buckets, accuracy, marker="o", linestyle="-", label=on_condition)
     # Plot chance level.
-    chance_line = ax.axhline(0.5, color="black", linestyle="--", label="chance", alpha=0.5, linewidth=0.5)
+    chance_line = ax.axhline(0.5, color="black", linestyle="--", alpha=0.5, linewidth=0.5)
 
     ax.set_xlabel(f"Consecutive '{consecutive_condition}' trials")
-    ax.set_ylabel(f"Accuracy on following '{on_condition}'")
+    ax.set_ylabel(f"Accuracy on following trial")
     ax.set_title(title)
     ax.set_xticks(buckets)
 
-    # create custom legend handles for each bucket, (workaround)
-    bucket_handles = []
-    for b, cnt in zip(buckets, counts):
-        bucket_handles.append(
-            Line2D([], [], marker="o", color="C0", linestyle="None", markersize=8, label=f"following {b} (n={cnt})")
-        )
-    # Create a legend that includes the bucket handles and the chance line.
-    handles = bucket_handles + [chance_line]
-    ax.legend(handles=handles, fontsize=10)
+    if include_handles:
+        # create custom legend handles for each bucket, (workaround)
+        bucket_handles = []
+        for b, cnt in zip(buckets, counts):
+            bucket_handles.append(
+                Line2D([], [], marker="o", color="C0", linestyle="None", markersize=8, label=f"following {b} (n={cnt})")
+            )
+        # Create a legend that includes the bucket handles and the chance line.
+        handles = bucket_handles + [chance_line]
+        ax.legend(handles=handles, fontsize=10)
 
     if show_plot:
         plt.draw()

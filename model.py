@@ -2,10 +2,6 @@ import numpy as np
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 
-# direct feedback influences the task attention variables directly
-# indirect feedback influences the P variable which in turn influences the task attention variables
-FEEDBACK_INFLUENCE = "indirect"
-
 
 def S(g, net):
     """Logistic saturation function, with slope modulated by a gain parameter g
@@ -60,21 +56,11 @@ def attention_switch_dynamics_model(t, x, g, alpha, gamma, input, feedback, sigm
 
     # net inputs for the 3 neurons
     attention_dominance = 1 if x1 >= x2 else -1
+    tendency = np.sign(gamma * attention_dominance) if np.abs(gamma) > 0.001 else attention_dominance
 
     net_1 = -w1_2 * x2 + w1_p * P + I1 + sigma * np.random.normal()
     net_2 = -w2_1 * x1 - w2_p * P + I2 + sigma * np.random.normal()
-    net_P = gamma * (wp_1 * x1 - wp_2 * x2)  # + sigma * np.random.normal()
-
-    if FEEDBACK_INFLUENCE == "indirect":
-        tendency = np.sign(gamma * attention_dominance) if np.abs(gamma) > 0.001 else attention_dominance
-        net_P += alpha * F * (-tendency)
-
-    elif FEEDBACK_INFLUENCE == "direct":
-        net_1 += alpha * F * attention_dominance
-        net_2 += alpha * F * (-attention_dominance)
-
-    else:
-        raise ValueError(f"Invalid feedback influence type: {FEEDBACK_INFLUENCE}, set to either 'direct' or 'indirect'")
+    net_P = gamma * (wp_1 * x1 - wp_2 * x2) + alpha * F * (-tendency)  # + sigma * np.random.normal()
 
     # differential equations for the 3 neurons
     dx1_dt = -x1 + S(g, net_1)
