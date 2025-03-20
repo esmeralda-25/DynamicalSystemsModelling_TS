@@ -24,6 +24,29 @@ def param_recovery(
     sigma=0.2,
     tau_P=1,
 ):
+    """
+    Recover parameters from simulated data.
+    args:
+    num_trials: int, number of trials in the experiment
+    T: float, time interval to simulate the model
+    x_0: numpy array, initial conditions for the model
+    to_recover_g: np.ndarray, values of g to recover
+    to_recover_c: np.ndarray, values of c to recover
+    to_recover_alpha: np.ndarray, values of alpha to recover
+    to_recover_gamma: np.ndarray, values of gamma to recover
+    g_values: np.ndarray, values of g to fit
+    c_values: np.ndarray, values of c to fit
+    alpha_values: np.ndarray, values of alpha to fit
+    gamma_values: np.ndarray, values of gamma to fit
+    sigma: float, standard deviation of the noise
+    tau_P: float, time constant for the persistence variable P
+    returns:
+    fitted_g_log: np.ndarray, fitted values of g
+    fitted_c_log: np.ndarray, fitted values of c
+    fitted_alpha_log: np.ndarray, fitted values of alpha
+    fitted_gamma_log: np.ndarray, fitted values of gamma
+    LL_log: np.ndarray, log likelihood
+    """
     # make sure all parameters to recover have the same number of values
     num_true_param_set = len(to_recover_g)
     if (
@@ -82,6 +105,22 @@ def param_recovery(
 def summarize_paramRecovery_results(
     param_names, true_g, true_c, true_alpha, true_gamma, fitted_g, fitted_c, fitted_alpha, fitted_gamma, LL
 ):
+    """
+    Summarize the results of the parameter recovery.
+    args:
+    param_names: list of strings, names of the parameters
+    true_g: np.ndarray, true values of g
+    true_c: np.ndarray, true values of c
+    true_alpha: np.ndarray, true values of alpha
+    true_gamma: np.ndarray, true values of gamma
+    fitted_g: np.ndarray, fitted values of g
+    fitted_c: np.ndarray, fitted values of c
+    fitted_alpha: np.ndarray, fitted values of alpha
+    fitted_gamma: np.ndarray, fitted values of gamma
+    LL: np.ndarray, log likelihood
+    returns:
+    results_df: pandas DataFrame, results of the parameter recovery
+    """
     # make a df of the results
     results_df = pd.DataFrame(
         {
@@ -117,6 +156,17 @@ def summarize_paramRecovery_results(
 
 
 def plot_true_fitted_correlation(true_params, fitted_params, param_range, margin=0.1, ax=None):
+    """
+    Plot the correlation between true and fitted parameters.
+    args:
+    true_params: np.ndarray, true parameter values
+    fitted_params: np.ndarray, fitted parameter values
+    param_range: tuple, range of the parameters
+    margin: float, margin to add to the plot
+    ax: (optional) axis to plot on
+    returns:
+    ax: axis
+    """
     show_plot = False
     if ax is None:
         ax = plt.gca()
@@ -134,6 +184,15 @@ def plot_true_fitted_correlation(true_params, fitted_params, param_range, margin
 
 
 def plot_cross_correlation(cross_corr, param_names, ax=None):
+    """
+    Plot the cross correlation between the fitted parameters.
+    args:
+    cross_corr: pd.DataFrame, cross correlation between the fitted parameters
+    param_names: list of strings, names of the parameters
+    ax: (optional) axis to plot on
+    returns:
+    ax: axis
+    """
     show_plot = False
     if ax is None:
         ax = plt.gca()

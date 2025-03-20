@@ -4,13 +4,14 @@ from parameter_fitting import param_fit_grid_search_parallel
 
 
 def BIC(LL, k, n):
-    """Compute the Bayesian Information Criterion
-
-    Inputs
-    -------
-    LL: log likelihood
-    k: number of parameters
-    n: number of data points
+    """
+    Compute the Bayesian Information Criterion
+    args:
+    LL: float, log-likelihood of the model
+    k: int, number of free parameters in the model
+    n: int, number of observations
+    returns:
+    BIC: float, Bayesian Information
     """
     return -2 * LL + k * np.log(n)
 
@@ -27,12 +28,32 @@ def model_fit(
     tau_P=1,
     model_names=["base", "perseverance", "feedback", "PF"],
 ):
+    """
+    Fit models in model_names to the data provided.
+    The function fits the models using grid search and returns the best parameters for each model.
+    args:
+    data: pd.DataFrame, the data to fit
+    T: model simulation time
+    x_0: float, initial value of the state variable
+    g_values: np.ndarray, values of the g parameter to search over
+    c_values: np.ndarray, values of the c parameter to search over
+    alpha_values: np.ndarray, values of the alpha parameter to search over
+    gamma_values: np.ndarray, values of the gamma parameter to search over
+    sigma: float, standard deviation of the noise
+    tau_P: float, time constant of the persistence process
+    model_names: list of strings, names of the models to fit
+    returns:
+    results: dict, with the following structure:
+        {
+            'model_name': {'g': float, 'c': float, 'alpha': float, 'gamma': float, 'LL': float, 'BIC': float},
+            ...
+        }
+    """
+
     n = len(data)
-    print("fitting data to models: ", model_names)
-    print("number of data points: ", n)
     results = {}
     if "base" in model_names:
-        # Fit the base model (alpha and gamma fixed to 0)
+        # fit the base model (alpha and gamma fixed to 0)
         best_params_base, best_LL_base, _ = param_fit_grid_search_parallel(
             data, T, x_0, g_values, c_values, np.zeros(1), np.zeros(1), sigma, tau_P
         )
@@ -49,7 +70,7 @@ def model_fit(
         }
 
     if "perseverance" in model_names:
-        # Fit the persistence model (alpha fixed to 0)
+        # fit the persistence model (alpha fixed to 0)
         best_params_P, best_LL_P, _ = param_fit_grid_search_parallel(
             data, T, x_0, g_values, c_values, np.zeros(1), gamma_values, sigma, tau_P
         )
@@ -66,7 +87,7 @@ def model_fit(
         }
 
     if "feedback" in model_names:
-        # Fit the full model with feedback (gamma fixed to 0)
+        # fit the full model with feedback (gamma fixed to 0)
         best_params_F, best_LL_F, _ = param_fit_grid_search_parallel(
             data, T, x_0, g_values, c_values, alpha_values, np.zeros(1), sigma, tau_P
         )
@@ -83,7 +104,7 @@ def model_fit(
         }
 
     if "PF" in model_names:
-        # Fit the full model with perseverance and feedback (all parameters free to vary)
+        # fit the full model with perseverance and feedback (all parameters free to vary)
         best_params_PF, best_LL_PF, _ = param_fit_grid_search_parallel(
             data, T, x_0, g_values, c_values, alpha_values, gamma_values, sigma, tau_P
         )
@@ -104,39 +125,26 @@ def model_fit(
 
 def model_comparision_results_statistics(results_df):
     """
-    Given a DataFrame of participant results (indexed by participant id) with a column 'best_model'
-    and other columns corresponding to fit values (LL, BIC, model parameters, etc.),
-    this function groups the participants by their best fitted model, and for each parameter computes:
-        - mean
-        - standard deviation (std)
-        - standard error of the mean (se)
-        - 95% confidence interval (ci_lower, ci_upper)
-
-    Parameters
-    ----------
-    results_df : pd.DataFrame
-        DataFrame with participant results. It is assumed that there is an index for participant IDs
-        and one column named 'best_model' that specifies the winning model.
-    Returns
-    -------
-    stats : pd.DataFrame
-        A DataFrame with multi-index columns (parameter, statistic) where each statistic is one of:
-        'mean', 'std', 'se', 'ci_lower', 'ci_upper'
+    Compute the mean, standard deviation, standard error and 95% confidence interval for each parameter in the results, grouped by the best fitted model.
+    args:
+    results_df: pd.DataFrame, the results DataFrame
+    returns:
+    stats: pd.DataFrame, the statistics DataFrame with the following structure:
     """
     results = results_df.copy()
 
-    # Group by the best fitted model
+    # group by the best fitted model
     grouped = results.groupby("best_model")
 
-    # Compute the mean and standard deviation for each column in each group.
-    # The result is a DataFrame with a MultiIndex in columns: (parameter, statistic)
+    # compute the mean and standard deviation for each column in each group.
+    # the result is a DataFrame with a MultiIndex in columns: (parameter, statistic)
     stats = grouped.agg(["mean", "std"])
 
-    # Number of participants per group
+    # number of participants per group
     counts = grouped.size()
 
-    # For each parameter, compute se and 95% confidence interval.
-    # The se = std / sqrt(n)
+    # for each parameter, compute se and 95% confidence interval.
+    # the se = std / sqrt(n)
     # 95% CI = mean ± 1.96 * se
     for param in stats.columns.levels[0]:
         # Retrieve standard deviation series for the current parameter
@@ -146,7 +154,7 @@ def model_comparision_results_statistics(results_df):
         stats[(param, "ci_lower")] = stats[(param, "mean")] - 1.96 * se
         stats[(param, "ci_upper")] = stats[(param, "mean")] + 1.96 * se
 
-    # Optionally sort columns for clarity (sort by parameter names)
+    # sort columns by parameter names for clarity
     stats = stats.sort_index(axis=1, level=0)
     # round numeric values
     stats = stats.map(lambda x: np.round(x, 3) if pd.notnull(x) and isinstance(x, (int, float)) else x)

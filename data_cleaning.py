@@ -12,7 +12,15 @@ def clean_stimulus(stimulus):
 
 
 def clean_data(df_raw):
-    # Rename columns for consistency
+    """
+    Function to clean the raw data from the experiment.
+    The function will clean the data and return a cleaned DataFrame.
+    args:
+    df_raw: pandas DataFrame
+    returns:
+    df: pandas DataFrame
+    """
+    # rename columns for consistency
     df = df_raw.rename(columns=lambda x: x.replace("bean_", "")).copy()
     # get only needed columns and drop the rest
     relevant_columns = ["task_type", "rt", "correct", "response", "correct_key", "choices", "text"]
@@ -96,4 +104,73 @@ def clean_data(df_raw):
 
 if __name__ == "__main__":
     # process all data and save as csv files
-    pass
+    # take a path to a directory with the raw data files and a directory to save the cleaned data files
+    import os
+    import glob
+    import sys
+    import json
+    import argparse
+
+    RAW_DATA_DIR = "data/"
+    CLEANED_DATA_DIR = "cleaned_data/"
+
+    parser = argparse.ArgumentParser(description="Clean the raw data files from the experiment.")
+    parser.add_argument("raw_data_dir", type=str, help="Path to the directory containing the raw data files.")
+    parser.add_argument("clean_data_dir", type=str, help="Path to the directory to save the cleaned data files.")
+    args = parser.parse_args()
+
+    raw_data_dir = args.raw_data_dir
+    clean_data_dir = args.clean_data_dir
+
+    if raw_data_dir is None:
+        raw_data_dir = RAW_DATA_DIR
+    if clean_data_dir is None:
+        clean_data_dir = CLEANED_DATA_DIR
+
+    if not os.path.exists(raw_data_dir):
+        sys.exit(f"Error: Directory '{raw_data_dir}' does not exist.")
+    os.makedirs(clean_data_dir, exist_ok=True)
+
+    # get all raw data files
+    raw_data_files = glob.glob(os.path.join(raw_data_dir, "*.json"))
+
+    reset_cleaned_data = False  # set to True to delete all cleaned in cleaned_data_dir and re-process the raw data
+
+    # check the number of .jsin files in the raw_data_dir and .csv files in the cleaned_data_dir
+    raw_data_names = glob.glob(os.path.join(raw_data_dir, "*.json"))
+    cleaned_data_names = glob.glob(os.path.join(clean_data_dir, "*.csv"))
+
+    num_raw_data_files = len(raw_data_names)
+    num_cleaned_data_files = len(cleaned_data_names)
+
+    print(f"number of raw data files: {num_raw_data_files}")
+    print(f"number of cleaned data files: {num_cleaned_data_files}")
+
+    # list of data files that are in the raw data directory but not in the cleaned data directory
+    data_files_to_clean = [
+        file for file in raw_data_names if os.path.basename(file).replace(".json", ".csv") not in cleaned_data_names
+    ]
+    # print("data to clean: ", *data_files_to_clean, sep='\n')
+    # clean raw data files
+    for data_file in data_files_to_clean:
+        with open(data_file, "r") as f:
+            data = json.load(f)
+        # save to csv only if the data is not already saved
+        if not os.path.exists(os.path.join(clean_data_dir, os.path.basename(data_file).replace(".json", ".csv"))):
+            df_raw = pd.json_normalize(data)
+            df_clean = clean_data(df_raw)
+            df_clean.to_csv(
+                os.path.join(clean_data_dir, os.path.basename(data_file).replace(".json", ".csv")), index=False
+            )
+
+    # get the names of the cleaned data files again after possible upadting
+    cleaned_data_names = glob.glob(os.path.join(clean_data_dir, "*.csv"))
+    print(f"updated number of cleaned data files: {len(cleaned_data_names)}")
+    print("file names: ", *cleaned_data_names, sep="\n")
+    # load the cleaned data into dataframes
+    data_dfs = [pd.read_csv(data_file) for data_file in cleaned_data_names]
+
+    if len(data_dfs) == 0:
+        raise ValueError(
+            f"No data to fit files found. Please upload raw data files to: {clean_data_dir}, or cleaned data to: {clean_data_dir}"
+        )

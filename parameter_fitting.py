@@ -14,20 +14,19 @@ from model_simulation import compute_choice_probabilities
 # defining a function for computing the log likelihoods of the parameters given the data
 def compute_log_likelihood(df, T, x_0, g, c, alpha, gamma, sigma, tau_P=1):
     """
-    This function computes the log likelihood for a given set of model parameters
-
-    Input arguments:
-        df: data frame
-        T: time horizon
-        x_0: initial state of the system
-        g: parameter used to compute the input to the system
-        c: parameter used to compute the softmax parameter beta
-        alpha: parameter used to compute the input to the system
-        gamma: parameter used to compute the input to the system
-        sigma: noise parameter
-
-    Output:
-        LL
+    Compute the log likelihood of the parameters given the data.
+    args:
+    df: pandas DataFrame
+    T: float, time interval to simulate the model
+    x_0: numpy array, initial conditions for the model
+    g: float, gain parameter
+    c: float, choice parameter
+    alpha: float, learning rate
+    gamma: float, perseverance parameter
+    sigma: float, noise parameter
+    tau_P: float, time constant for the persistence variable P
+    returns:
+    LL: float, log likelihood of the parameters given the data
     """
     # initialize log likelihood
     x_0 = np.array(x_0, dtype=np.float64, copy=True)
@@ -74,6 +73,25 @@ def compute_log_likelihood(df, T, x_0, g, c, alpha, gamma, sigma, tau_P=1):
 def param_fit_grid_search(
     df, T, x_0, g_values, c_values, alpha_values, gamma_values, sigma=0.2, tau_P=1, pbar_start_pos=0
 ):
+    """
+    Perform a grid search to find the best parameters for the model.
+    args:
+    df: pandas DataFrame
+    T: float, time interval to simulate the model
+    x_0: numpy array, initial conditions for the model
+    g_values: 1D numpy array, values of the gain parameter to search
+    c_values: 1D numpy array, values of the choice parameter to search
+    alpha_values: 1D numpy array, values of the learning rate to search
+    gamma_values: 1D numpy array, values of the perseverance parameter to search
+    sigma: float, noise parameter
+    tau_P: float, time constant for the persistence variable P
+    pbar_start_pos: int, starting position for the progress bar
+    returns:
+    tuple: tuple of parameter with maximum LL, (best_g, best_c, best_alpha, best_gamma)
+    best_LL: float, log likelihood of the best parameters
+    LL_matrix: 4D numpy array, log likelihood values for all parameter combinations
+    """
+
     num_c, num_g, num_alpha, num_gamma = len(c_values), len(g_values), len(alpha_values), len(gamma_values)
     LL_matrix = np.zeros(shape=(num_g, num_c, num_alpha, num_gamma))
     best_LL = -np.inf
@@ -104,21 +122,22 @@ def param_fit_grid_search(
                         best_gamma = gamma
                         best_LL = LL
 
-    return best_g, best_c, best_alpha, best_gamma, best_LL, LL_matrix
+    return (best_g, best_c, best_alpha, best_gamma), best_LL, LL_matrix
 
 
 def plot_heatmap(matrix, x_values, y_values, x_label, y_label, title="", ax=None):
     """
-    Plots a 2D heatmap with the x-axis given by x_values and y-axis by y_values.
-
-    Parameters:
-      matrix: 2D array of values to plot.
-      x_values: 1D array for the x-axis.
-      y_values: 1D array for the y-axis.
-      x_label: Label for the x-axis.
-      y_label: Label for the y-axis.
-      title: Plot title.
-      ax: An optional matplotlib Axes object.
+    Plot a heatmap of the given matrix.
+    args:
+    matrix: 2D numpy array, matrix to plot
+    x_values: 1D numpy array, values for the x-axis
+    y_values: 1D numpy array, values for the y-axis
+    x_label: str, label for the x-axis
+    y_label: str, label for the y-axis
+    title: (optional) str, title of the plot
+    ax: (optional) matplotlib axis, axis to plot on
+    returns:
+    ax: matplotlib axis
     """
     show_plot = False
     if ax is None:
@@ -138,7 +157,6 @@ def plot_heatmap(matrix, x_values, y_values, x_label, y_label, title="", ax=None
     ax.set_title(title)
     if show_plot:
         plt.draw()
-    return ax
 
     return ax
 
@@ -155,6 +173,25 @@ from functools import partial
 def param_fit_grid_search_parallel(
     df, T, x_0, g_values, c_values, alpha_values, gamma_values, sigma=0.2, tau_P=1, n_jobs=-1
 ):
+    """
+    Perform a grid search to find the best parameters for the model in parallel.
+    args:
+    df: pandas DataFrame
+    T: float, time interval to simulate the model
+    x_0: numpy array, initial conditions for the model
+    g_values: 1D numpy array, values of the gain parameter to search
+    c_values: 1D numpy array, values of the choice parameter to search
+    alpha_values: 1D numpy array, values of the learning rate to search
+    gamma_values: 1D numpy array, values of the perseverance parameter to search
+    sigma: float, noise parameter
+    tau_P: float, time constant for the persistence variable P
+    n_jobs: int, number of parallel jobs to run
+    returns:
+    tuple: tuple of parameter with maximum LL, (best_g, best_c, best_alpha, best_gamma)
+    best_LL: float, log likelihood of the best parameters
+    LL_matrix: 4D numpy array, log likelihood values for all parameter combinations
+    """
+
     # Ensure parameters are numpy arrays
     g_values = np.array(g_values)
     c_values = np.array(c_values)

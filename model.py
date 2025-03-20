@@ -4,34 +4,34 @@ import matplotlib.pyplot as plt
 
 
 def S(g, net):
-    """Logistic saturation function, with slope modulated by a gain parameter g
-
-    Inputs
-    --------
-    g: positive scalar neuronal gain
-    net: net input to the neural processing unit
     """
-
+    Sigmoid function
+    args:
+    g: gain, steepness of the sigmoid
+    net: net input to the neuron
+    returns:
+    sigmoid of the net input
+    """
     return 1 / (1 + np.exp(-g * net))
 
 
 def attention_switch_dynamics_model(t, x, g, alpha, gamma, input, feedback, sigma, tau_P=1):
-    """Dynamical model
-
-    ------
-    t: scalar time
-    x: array [x1,x2] of activities of the neural units corresponding to tasks 1,2
-    g: gain
-    input: array[I1,I2] of input to neural units
-    sigma: standard deviation of Gaussian noise added to the net input
-
-    w_{12} = w{21} = 1
-
-    Output
-    -------
-    dx1/dt(t,x)
-    dx2/dt(t,x)
-
+    """
+    Dynamical model for the attention switch task.
+    args:
+    t: time step
+    x: state of the system [x1, x2, P]
+    g: gain, regulates the steepness of the sigmoid function, i.e the depth of task-attention attractors
+    alpha: learning rate from feedback
+    gamma: perseverance parameter
+    input: input to the system
+    feedback: feedback signal
+    sigma: noise
+    tau_P: time constant for the persistence variable P
+    returns:
+    dx1_dt: rate of change of x1
+    dx2_dt: rate of change of x2
+    dP_dt: rate of change of P
     """
     global FEEDBACK_INFLUENCE
     # split input I1 is for task 1 and I2 for task 2
@@ -71,6 +71,15 @@ def attention_switch_dynamics_model(t, x, g, alpha, gamma, input, feedback, sigm
 
 
 def simulate_dynamics(T, x_0, g, alpha, gamma, input, feedback, sigma, tau_P, num_sample_points=100):
+    """
+    Simulate the dynamics of the attention switch task with the given parameters.
+    uses scipy's solve_ivp to integrate the differential equations
+    returns:
+    ts: time points
+    x1: trajectory of x1
+    x2: trajectory of x2
+    P: trajectory of the persistence variable P
+    """
     # integrate differential equation
 
     x_out = solve_ivp(
@@ -97,6 +106,21 @@ def simulate_dynamics(T, x_0, g, alpha, gamma, input, feedback, sigma, tau_P, nu
 
 
 def plot_trajectory(T, ts, x1, x2, P, input=None, feedback=None, num_trials=1, ax=None):
+    """
+    Plot the time trajectories of the attention switch task
+    args:
+    T: time interval
+    ts: time points
+    x1: trajectory of x1
+    x2: trajectory of x2
+    P: trajectory of the persistence variable P
+    input: (optional) input to the system
+    feedback: (optional) feedback signal
+    num_trials: number of trials
+    ax: (optional) axis to plot on
+    returns:
+    None
+    """
     # Get the current figure
     fig = plt.gcf()
     fig.clf()  # Clear the figure to prevent overplotting

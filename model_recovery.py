@@ -25,6 +25,29 @@ def model_recovery(
     tau_P=1,
     model_names=["base", "perseverance", "feedback", "PF"],
 ):
+    """ "
+    Function to recover the models from simulated data.
+    The function will simulate data with the sampled parameters and fit the models to the data.
+    args:
+    num_trials: int, number of trials in the experiment
+    T: int, model simulation time
+    x_0: float, initial value of the state variable
+    sampled_g: np.ndarray, sampled values of the g parameter
+    sampled_c: np.ndarray, sampled values of the c parameter
+    sampled_alpha: np.ndarray, sampled values of the alpha parameter
+    sampled_gamma: np.ndarray, sampled values of the gamma parameter
+    g_values: np.ndarray, values of the g parameter to search over
+    c_values: np.ndarray, values of the c parameter to search over
+    alpha_values: np.ndarray, values of the alpha parameter to search over
+    gamma_values: np.ndarray, values of the gamma parameter to search over
+    sigma: float, standard deviation of the noise
+    tau_P: float, time constant of the persistence process
+    model_names: list of strings, names of the models to fit
+    returns:
+    confusion_matrix: np.ndarray, confusion matrix of the model recovery
+    inverse_matrix: np.ndarray, inversion matrix of the model recovery
+    true_fitted_df: pd.DataFrame, DataFrame with the true and fitted models
+    """
 
     num_true_param_set = len(sampled_g)
     num_models = len(model_names)
@@ -107,6 +130,16 @@ def model_recovery(
 
 
 def plot_model_recovery(confusion_matrix, inverse_matrix, model_names, axs=None):
+    """
+    Function to plot the confusion matrix and inversion matrix of the model recovery.
+    args:
+    confusion_matrix: np.ndarray, confusion matrix of the model recovery
+    inverse_matrix: np.ndarray, inversion matrix of the model recovery
+    model_names: list of strings, names of the models
+    axs: (optional) list of matplotlib axes, axes to plot the confusion matrix and inversion matrix
+    returns:
+    axs: list of matplotlib axes, axes with the confusion matrix and inversion matrix
+    """
     show_plot = False
     if axs is None:
         fig, axs = plt.subplots(1, 2, figsize=(10, 5))

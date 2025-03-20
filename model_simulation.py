@@ -8,13 +8,13 @@ from model import simulate_dynamics, plot_trajectory
 
 def compute_choice_probabilities(activities_n_final, trial_number, c):
     """
-    This function computes the choice probabilities for the given neuron activities
-    Input arguments:
-      neuron_activities: a list of both neuron activities
-      trial_number: number of the current trial
-      c: parameter used to compute beta in the softmax function
-    Output:
-      choice_probs: list of choice probabilities
+    computes the choice probabilities based on the final activity levels.
+    args:
+    activities_n_final: np.ndarray, activity of neuron 1 (letter task) and neuron 2 (number task) at the end of trial
+    trial_number: int, number of the current trial
+    c: float, parameter used to compute beta in the softmax function
+    returns:
+    choice_probs: np.ndarray, choice probabilities
     """
 
     # compute beta
@@ -31,13 +31,13 @@ def compute_choice_probabilities(activities_n_final, trial_number, c):
 
 def compute_choice(activities_n_final, trial_number, c):
     """
-    This function computes the choice based on the final activity levels
-    Input arguments:
-    activities_n_final: activity of neuron 1 (letter task) and neuron 2 (number task) at the end of trial
-    trial_number: number of the current trial
-    c: parameter used to compute beta in the softmax function
-    Output:
-    choice: chosen task to react to 0 -> letter task , 1 -> number task
+    computes the choice based on the choice probabilities.
+    args:
+    activities_n_final: np.ndarray, activity of neuron 1 (letter task) and neuron 2 (number task) at the end of trial
+    trial_number: int, number of the current trial
+    c: float, parameter used to compute beta in the softmax function
+    returns:
+    choice: int, chosen deck index
     """
     # compute softmaxed choice proabbilities
     choice_probs = compute_choice_probabilities(activities_n_final, trial_number, c)
@@ -59,6 +59,14 @@ def compute_choice(activities_n_final, trial_number, c):
 
 
 def test_trial_type(current_task, former_task):
+    """
+    test whether the current task is the same as the former task.
+    args:
+    current_task: str, current task
+    former_task: str, former task
+    returns:
+    trial_type: str, type of trial (repeat or switch)
+    """
     # determining the condition (repeat/ switch)
 
     if current_task == former_task:
@@ -70,6 +78,15 @@ def test_trial_type(current_task, former_task):
 
 
 def initialize_task(task=None):
+    """
+    initialize the task for the next trial.
+    args:
+    task: int, task of the current trial
+    returns:
+    current_task: str, current task
+    input: np.ndarray, input to the neural units
+    correct_responses: np.ndarray, correct responses for the current task
+    """
     # initialization of the task
     if task is None:
         task = random.randint(0, 1)
@@ -94,6 +111,14 @@ def initialize_task(task=None):
 
 
 def get_correctness(correct_responses, choice):
+    """
+    get the correctness of the choice.
+    args:
+    correct_responses: np.ndarray, correct responses for the current task
+    choice: int, chosen deck index
+    returns:
+    correctness: int, correctness of the choice
+    """
     # checking if the choice is correct
 
     if correct_responses[choice] == 1:
@@ -107,12 +132,11 @@ def get_correctness(correct_responses, choice):
 # generate an experiment with a given number of trials
 def generate_experiment_trials(num_trials):
     """
-    This function generates an experiment with a given number of trials.
-
-    Input arguments:
-      num_trials: number of trials
-    Output:
-      df: a Pandas dataframe containing the data of the experiment
+    generate an experiment with a given number of trials.
+    args:
+    num_trials: int, number of trials
+    returns:
+    df: pandas DataFrame, data of the experiment
     """
     trials = [initialize_task() for _ in range(num_trials)]
     trails_df = pd.DataFrame(trials, columns=["task", "input", "correct_responses"])
@@ -122,12 +146,11 @@ def generate_experiment_trials(num_trials):
 
 def generate_experiment_trials_fromData(data):
     """
-    This function generates an experiment with a given number of trials.
-
-    Input arguments:
-      data: a Pandas dataframe containing the data of the experiment
-    Output:
-      df: a Pandas dataframe containing the data of the experiment
+    generate an experiment with the same sequence of tasks as the provided data.
+    args:
+    data: pandas DataFrame, data of the experiment / task sequence
+    returns:
+    df: pandas DataFrame, data of the experiment
     """
     # 0 letter, 1 number
     tasks = data["task"].copy().apply(lambda x: 0 if x == "letter" else 1)
@@ -138,23 +161,17 @@ def generate_experiment_trials_fromData(data):
 
 
 def log_data(df, trial_number, activities_n_final, current_task, trial_type, choice, correct_responses, correctness):
+    """ "
+    log the data of the current trial.
+    args:
+    df, trial_number, activities_n_final, current_task, trial_type, choice, correct_responses, correctness
+    returns:
+    df: pandas DataFrame, data of the experiment
     """
-    This function logs several outcomes of the simulation into a data frame.
-
-    Input arguments:
-      df: a Pandas dataframe in which we write the data
-      trial_index: current trial number
-      activities_n_final: activity of neuron 1 (letter task) and neuron 2 (number task) at the end of trial
-      task: letter or number task
-      trial_type: whether the task switched from the trial before (switch) or stayed the same (repeat)
-      choice: chosen task to react to 0 -> letter task , 1 -> number task
-      correctness: whether the chosen task is correct
-    """
-
-    # Calculate the new index (assuming trial_number starts at 0 and aligns with DataFrame index)
+    # calculate the new index (assuming trial_number starts at 0 and aligns with DataFrame index)
     new_index = len(df)
 
-    # Directly assign the new row to the DataFrame using `loc`
+    # directly assign the new row to the DataFrame using `loc`
     df.loc[new_index] = {
         "trial_index": trial_number,
         "activity_n1": activities_n_final[0],
@@ -183,6 +200,25 @@ def simulate_experiment(
     task_sequence=None,
     ax=None,
 ):
+    """
+    simulate an experiment with a given number of trials.
+    args:
+    num_trials: int, number of trials
+    T: float, time interval
+    x_0: np.ndarray, initial activity of the neurons
+    g: float, gain parameter
+    c: float, parameter used to compute beta in the softmax function
+    alpha: float, decay rate of the neural activity
+    gamma: float, decay rate of the working memory
+    sigma: float, noise level
+    tau_P: float, time constant of the working memory
+    num_sample_points_per_trial: int, number of sample points per trial
+    bool_plot_trajectory: bool, whether to plot the trajectory
+    task_sequence: pandas DataFrame, task sequence
+    ax: (optional) matplotlib axis, axis to plot the trajectory
+    returns:
+    df: pandas DataFrame, data of the experiment
+    """
 
     if task_sequence is not None:
         num_trials = len(task_sequence)

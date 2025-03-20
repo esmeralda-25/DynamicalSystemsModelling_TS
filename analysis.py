@@ -3,10 +3,16 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
+# TODO add short conscise docstrings
+
 
 def calculate_accuracy_condition(df):
     """
     Calculates the average accuracy for switch and repeat trials.
+    args:
+        df: DataFrame containing the data, with columns 'trial_type' and 'response'
+    returns:
+        dict with keys 'accuracy_switch' and 'accuracy_repeat' containing the average accuracy for switch and repeat trials
     """
     # filter the data for switch and repeat trials
     switch_trials = df[df["trial_type"] == "switch"]
@@ -29,24 +35,25 @@ def calculate_accuracy_condition(df):
 
 def plot_accuracy_condition(condition_accuracies, title="", ax=None):
     """
-    Calculates and plots the average accuracy for switch and repeat trials.
-
-    If an Axes object is provided via the 'ax' parameter, the plot is drawn on that Axes.
-    Otherwise, a new figure and Axes are created.
+    Plots the average accuracy for switch and repeat trials.
+    args:
+        condition_accuracies: dict with keys 'accuracy_switch' and 'accuracy_repeat' containing the average accuracy for switch and repeat trials
+        title: (optional) title for the plot
+        ax: (optional) matplotlib axes to plot on
+    returns:
+        ax: matplotlib axes containing the plot
     """
-    # Calculate average accuracy using the calculate_accuracy_per_condition function
-
-    # Extract results for plotting
+    # extract results for plotting
     trial_types = ["Switch", "Repeat"]
     condition_accuracies = [condition_accuracies["accuracy_switch"], condition_accuracies["accuracy_repeat"]]
 
-    # Create new axes if none is provided
+    # create new axes if none is provided
     show_plot = False
     if ax is None:
         fig, ax = plt.subplots(figsize=(8, 6))
         show_plot = True
 
-    # Create the bar plot on the provided (or new) axis
+    # bar plot on the provided (or new) axis
     bars = ax.bar(trial_types, condition_accuracies, color=["blue", "green"])
     ax.set_xlabel("Trial Type")
     ax.set_ylabel("Accuracy")
@@ -57,29 +64,37 @@ def plot_accuracy_condition(condition_accuracies, title="", ax=None):
     for bar in bars:
         height = bar.get_height()
         xpos = bar.get_x() + bar.get_width() / 2.0
-        # Place the text offset below the top edge of the bar.
-        # If the bar is too short, adjust the position so it remains inside.
+        # place the text offset below the top edge of the bar.
+        # if the bar is too short, adjust the position so it remains inside.
         text_y = height - offset if height > offset else height * 0.5
         ax.text(xpos, text_y, f"{height:.2f}", ha="center", va="top", color="black")
 
-    # If a new figure was created, display the plot
+    # if a new figure was created, display the plot
     if show_plot:
         plt.draw()
     return ax
 
 
 def calculate_accuracy_across_blocks(data, num_blocks=5):
+    """
+    Calculates the accuracy for each block of trials.
+    args:
+        data: DataFrame containing the data, with columns 'trial_type' and 'response'
+        num_blocks: number of blocks to divide the data into
+    returns:
+        DataFrame with columns 'block', 'accuracy_switch', 'accuracy_repeat', 'accuracy'
+    """
     data = data.copy()
-    # Create a 'block' column. Use trial_index if available; otherwise, use the DataFrame's index.
+    # create a 'block' column. Use trial_index if available; otherwise, use the DataFrame's index.
     if "trial_index" in data.columns:
         trial_indices = data["trial_index"]
     else:
         trial_indices = data.index
-    # Use pd.cut to split the trial indices into equal-sized blocks (labels 1...num_blocks)
+    # split the trial indices into equal-sized blocks (labels 1...num_blocks)
     data["block"] = pd.cut(trial_indices, bins=num_blocks, labels=range(1, num_blocks + 1))
 
-    # Compute block-level accuracy by (mean response within each block)
-    overall_block = data.groupby("block")["response"].mean().reset_index()
+    # compute block-level accuracy by (mean response within each block)
+    overall_block = data.groupby("block", observed=False)["response"].mean().reset_index()
     switch_block = data[data["trial_type"] == "switch"].groupby("block")["response"].mean().reset_index()
     repeat_block = data[data["trial_type"] == "repeat"].groupby("block")["response"].mean().reset_index()
 
@@ -96,13 +111,22 @@ def calculate_accuracy_across_blocks(data, num_blocks=5):
 
 
 def plot_accuracy_across_blocks(acc_blocks, num_blocks=5, title="", ax=None):
-
+    """
+    Plots the accuracy for each block of trials.
+    args:
+        acc_blocks: DataFrame with columns 'block', 'accuracy_switch', 'accuracy_repeat', 'accuracy'
+        num_blocks: number of blocks to divide the data into
+        title: (optional) title for the plot
+        ax: (optional) matplotlib axes to plot on
+    returns:
+        ax: matplotlib axes containing the plot
+    """
     show_plot = False
     if ax is None:
         ax = plt.gca()
         show_plot = True
 
-    # Plot the results for each condition
+    # plot the results for each condition
     ax.plot(acc_blocks["block"], acc_blocks["accuracy_switch"], marker="o", label="switch")
     ax.plot(acc_blocks["block"], acc_blocks["accuracy_repeat"], marker="o", label="repeat")
     ax.plot(acc_blocks["block"], acc_blocks["accuracy"], marker="o", label="all")
@@ -110,7 +134,7 @@ def plot_accuracy_across_blocks(acc_blocks, num_blocks=5, title="", ax=None):
     # Plot chance level
     ax.axhline(0.5, color="black", linestyle="--", label="chance", alpha=0.5, linewidth=0.5)
 
-    # Format the axes
+    # format axes
     ax.set_title(title)
     ax.set_xlabel("Block")
     ax.set_ylabel("Accuracy")
@@ -124,21 +148,18 @@ def plot_accuracy_across_blocks(acc_blocks, num_blocks=5, title="", ax=None):
 
 def calculate_accuracy_consecutive_condition(df, consecutive_condition, on_condition, max_consecutive=3):
     """
-    Calculates the average accuracy for on_condition trials following a streak
-    of consecutive_condition trials.
-
-    When consecutive_condition and on_condition are different, each on_condition trial
-    is assigned to a single bucket defined by the immediately preceding consecutive_condition streak.
-
-    When they are the same, for any on_condition trial (which is also a consecutive_condition trial),
-    the trial is counted as following a streak of 1, 2, ... up to (current streak - 1).
-    For example, in a sequence like: A, A, A (with A representing the condition), the second A
-    is counted for a streak of 1 and the third A is counted for both a streak of 1 and a streak of 2.
+    Calculates the average accuracy for on_condition trials following a streak of consecutive_condition trials.
+    args:
+        df: DataFrame containing the data, with columns 'trial_type' and 'response'
+        consecutive_condition: the trial type whose consecutive occurrences are counted (e.g. "switch" or "repeat")
+        on_condition: the trial type for which accuracy is computed when it follows a streak of consecutive_condition trials
+        max_consecutive: the maximum number of consecutive trials to consider
+    returns:
+        DataFrame with columns 'bucket', 'accuracy', 'count'
     """
-    # Work on a copy so as not to alter original data.
     df = df.copy()
 
-    # First, compute a column with the count of consecutive consecutive_condition trials.
+    # compute a column with the count of consecutive consecutive_condition trials.
     df["consecutive_condition"] = 0
     consecutive_count = 1
     for i in range(len(df)):
@@ -150,32 +171,32 @@ def calculate_accuracy_consecutive_condition(df, consecutive_condition, on_condi
             df.loc[i, "consecutive_condition"] = 0
             consecutive_count = 1
 
-    # Prepare a dictionary to hold responses grouped by preceding streak length (bucket)
+    # prepare a dictionary to hold responses grouped by preceding streak length (bucket)
     streak_dict = {k: [] for k in range(1, max_consecutive + 1)}
 
-    # Loop over trials (start at 1 because we look at previous trial information)
+    # iterate over the DataFrame to populate the streak_dict
     for i in range(1, len(df)):
         if df.loc[i, "trial_type"] == on_condition:
             if consecutive_condition == on_condition:
-                # When the condition is self-same, the current trial is part of a streak.
-                # Its current consecutive count is n; it follows a streak of (n - 1).
+                # when the condition is self-same, the current trial is part of a streak.
+                # its current consecutive count is n; it follows a streak of (n - 1).
                 # We want to count this trial as following any streak length from 1 to min(n-1, max_consecutive).
                 current_streak = df.loc[i, "consecutive_condition"]
                 if current_streak > 1:
                     for bucket in range(1, min(current_streak, max_consecutive + 1)):
                         streak_dict[bucket].append(df.loc[i, "response"])
             else:
-                # When on_condition differs from consecutive_condition, only count the trial if it
+                # when on_condition differs from consecutive_condition, only count the trial if it
                 # immediately follows a consecutive_condition trial.
                 if df.loc[i - 1, "trial_type"] == consecutive_condition:
-                    # The previous trial’s consecutive count gives the streak length.
+                    # the previous trial’s consecutive count gives the streak length.
                     streak_val = df.loc[i - 1, "consecutive_condition"]
                     bucket = int(min(streak_val, max_consecutive))
-                    # Only include the trial if bucket is at least 1.
+                    # only include the trial if bucket is at least 1.
                     if bucket >= 1:
                         streak_dict[bucket].append(df.loc[i, "response"])
 
-    # Compute accuracy for each bucket
+    # compute accuracy for each bucket
     buckets = []
     accuracy = []
     counts = []
@@ -188,49 +209,38 @@ def calculate_accuracy_consecutive_condition(df, consecutive_condition, on_condi
             accuracy.append(np.nan)
             counts.append(0)
 
-    # Return as a DataFrame.
+    # return as a DataFrame.
     return pd.DataFrame({"bucket": buckets, "accuracy": accuracy, "count": counts})
 
 
 def plot_accuracy_consecutive_condition(
     acc_consecutive, consecutive_condition, on_condition, title="", ax=None, include_handles=False
 ):
-    """
-    Plots the average accuracy for on_condition trials following a streak
-    of consecutive_condition trials and creates a legend showing, for each bucket,
-    the bucket number and the count of trials.
-
-    Parameters
-    ----------
-    acc_consecutive : pd.DataFrame
-        DataFrame containing at least the columns "bucket", "accuracy", and "count".
-    consecutive_condition : str
-        The trial type whose consecutive occurrences are counted (e.g. "switch" or "repeat").
-    on_condition : str
-        The trial type for which accuracy is computed when it follows a streak of consecutive_condition trials.
-    title : str, optional
-        Title for the plot.
-    ax : matplotlib.axes.Axes, optional
-        Axes on which to plot the figure.
-
-    Returns
-    -------
-    ax : matplotlib.axes.Axes
-        The axes containing the plot.
+    """ "
+    Plots the average accuracy for on_condition trials following a streak of consecutive_condition trials.
+    args:
+        acc_consecutive: DataFrame with columns 'bucket', 'accuracy', 'count'
+        consecutive_condition: the trial type whose consecutive occurrences are counted (e.g. "switch" or "repeat")
+        on_condition: the trial type for which accuracy is computed when it follows a streak of consecutive_condition trials
+        title: (optional) title for the plot
+        ax: (optional) matplotlib axes to plot on
+        include_handles: (optional) include custom legend handles for each bucket
+    returns:
+        ax: matplotlib axes containing the plot
     """
     show_plot = False
     if ax is None:
         ax = plt.gca()
         show_plot = True
 
-    # Extract the bucket, accuracy, and counts from the DataFrame.
+    # extract bucket, accuracy, and counts from the DataFrame.
     buckets = acc_consecutive["bucket"]
     accuracy = acc_consecutive["accuracy"]
     counts = acc_consecutive["count"]
 
-    # Plot the average accuracy per bucket without a legend label.
+    # plot average accuracy per bucket without a legend label.
     (line,) = ax.plot(buckets, accuracy, marker="o", linestyle="-", label=on_condition)
-    # Plot chance level.
+    # chance level line.
     chance_line = ax.axhline(0.5, color="black", linestyle="--", alpha=0.5, linewidth=0.5)
 
     ax.set_xlabel(f"Consecutive '{consecutive_condition}' trials")
@@ -239,13 +249,13 @@ def plot_accuracy_consecutive_condition(
     ax.set_xticks(buckets)
 
     if include_handles:
-        # create custom legend handles for each bucket, (workaround)
+        # custom legend handles for each bucket, (workaround)
         bucket_handles = []
         for b, cnt in zip(buckets, counts):
             bucket_handles.append(
                 Line2D([], [], marker="o", color="C0", linestyle="None", markersize=8, label=f"following {b} (n={cnt})")
             )
-        # Create a legend that includes the bucket handles and the chance line.
+        # a legend that includes the bucket handles and the chance line.
         handles = bucket_handles + [chance_line]
         ax.legend(handles=handles, fontsize=10)
 
